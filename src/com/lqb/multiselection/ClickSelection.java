@@ -1,5 +1,6 @@
 package com.lqb.multiselection;
 
+import java.awt.event.InputEvent;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -79,16 +80,22 @@ public class ClickSelection<T> implements Iterable<T> {
 		selection.clearSelection();
 	}
 	
+	public void shiftCtrlClick(T element) {
+		shiftClick(element, false);
+	}
 	
 	public void shiftClick(T element) {
+		shiftClick(element, true);
+	}
+	
+	private void shiftClick(T element, boolean clearSelection) {
 		if(collection.size()==0) {
 			return;
 		} else {
 			int index=collection.indexOf(element);
 			if(index<0)
 				return;
-			
-			
+						
 			int latestSelected=0;
 			if(lastModified!=null) {
 				int res=collection.indexOf(lastModified);
@@ -96,17 +103,11 @@ public class ClickSelection<T> implements Iterable<T> {
 					latestSelected=res;
 				}
 			}
-				
 			
+			if(clearSelection) {
+				selection.clearSelection();
+			}
 			
-			
-//			int latestSelected=getIndexLatestInSelectedCollection();
-//			if(latestSelected<0) {
-//				//if nothing is selected, we will select starting from the first one
-//				latestSelected=0;
-//			}
-			
-			selection.clearSelection();
 			if(index < latestSelected) {
 				ListIterator<T> li = collection.listIterator(latestSelected + 1);
 				while(li.hasPrevious()) {
@@ -138,6 +139,18 @@ public class ClickSelection<T> implements Iterable<T> {
 		}
 	}
 
+	public void click(T element, int modifiers) {
+		boolean ctrlPressed=((modifiers & InputEvent.CTRL_MASK) > 0);
+		boolean shiftPressed=((modifiers & InputEvent.SHIFT_MASK) > 0);
+		if(shiftPressed) {
+			shiftClick(element, !ctrlPressed);
+		} else if(ctrlPressed) {
+			ctrlClick(element);
+		} else {
+			normalClick(element);
+		}
+	}
+	
 	@Override
 	public Iterator<T> iterator() {
 		return selection.iterator();

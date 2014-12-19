@@ -297,4 +297,23 @@ public class TestClickSelection {
 		assertEquals(4, (int) ite.next());
 		assertEquals(5, (int) ite.next());
 	}
+	
+	@Test
+	public void testCtrlShiftClick() {
+		listInteger.add(1);
+		listInteger.add(2);
+		listInteger.add(3);
+		listInteger.add(4);
+		listInteger.add(5);
+		clickSelection.normalClick(3);
+		clickSelection.shiftClick(5);
+		clickSelection.shiftCtrlClick(1);
+		assertEquals(5, clickSelection.size());
+		Iterator<Integer> ite=clickSelection.iterator();
+		assertEquals(1, (int) ite.next());
+		assertEquals(2, (int) ite.next());
+		assertEquals(3, (int) ite.next());
+		assertEquals(4, (int) ite.next());
+		assertEquals(5, (int) ite.next());
+	}
 }
