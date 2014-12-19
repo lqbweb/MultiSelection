@@ -13,11 +13,11 @@ import java.util.ListIterator;
  *		shiftClick: 	A range of items will be selected. If there are more than one item already selected before this event,
  *						the starting point will be the latest selected
  *
- *		ctrlClick: 		A new item will be added to the selection, or if it is already selected, it will be deselected
+ *		ctrlClick: 		A new item will be added to the selection, or if it is already selected, it will be unselected
  *
  * In general it works pretty much like Windows would do
  * 
- * This API is assuming that when an item is removed from the collection, you deselect it from here.
+ * This API is assuming that when an item is removed from the collection, you unselect it from here.
  *
  * @author Rubén Pérez
  * @since 1.25
@@ -27,6 +27,7 @@ public class ClickSelection<T> implements Iterable<T> {
 
 	protected SetSelection<T> selection=new SetSelection<T>();
 	private final List<T> collection;
+	private T lastModified=null;
 	
 	public ClickSelection(List<T> collection) {
 		this.collection=collection;
@@ -45,8 +46,8 @@ public class ClickSelection<T> implements Iterable<T> {
 	 * Call it when you have removed an element from "collection"
 	 * @param element
 	 */
-	public void deselectItem(T element) {
-		selection.deselect(element);
+	public void unselectItem(T element) {
+		selection.unselect(element);
 	}
 
 	/**
@@ -57,39 +58,25 @@ public class ClickSelection<T> implements Iterable<T> {
 	 * 		- If there are multiple items selected, and element is in between them, element will be the only one selected
 	 */
 	public void normalClick(T element) {
-		boolean isElementSelected=selection.isSelected(element);
-		int selectionSize=selection.size();
-		selection.clearSelection();
-		if(!isElementSelected) {
-			selection.select(element);
+		if(collection.size()==0) {
+			return;
 		} else {
-			if(selectionSize>1) {
+			boolean isElementSelected=selection.isSelected(element);
+			int selectionSize=selection.size();
+			selection.clearSelection();
+			if(!isElementSelected) {
 				selection.select(element);
+			} else {
+				if(selectionSize>1) {
+					selection.select(element);
+				}
 			}
+			lastModified=element;
 		}
 	}
 	
-	/**
-	 * Returns the index of the last element in "collection", that is contained in "selection"
-	 * @return -1 if nothing is selected, and the index of the item in "collection" if at least one is selected
-	 */
-	private int getIndexLatestSelected() {
-		if(selection.size()==0) {
-			return -1;	//nothing selected
-		} else if(selection.size()==1) {
-			return collection.indexOf(selection.iterator().next());
-		} else {
-			ListIterator<T> li = collection.listIterator(collection.size());
-			int nCounter=collection.size()-1;
-			while(li.hasPrevious()) {
-				T elem=li.previous();
-				if(selection.isSelected(elem)) {
-					return nCounter;
-				}
-				nCounter--;
-			}
-			return -1;	//nothing selected
-		}
+	public void clearSelection() {
+		selection.clearSelection();
 	}
 	
 	
@@ -101,11 +88,23 @@ public class ClickSelection<T> implements Iterable<T> {
 			if(index<0)
 				return;
 			
-			int latestSelected=getIndexLatestSelected();
-			if(latestSelected<0) {
-				//if nothing is selected, we will select starting from the first one
-				latestSelected=0;
+			
+			int latestSelected=0;
+			if(lastModified!=null) {
+				int res=collection.indexOf(lastModified);
+				if(res>=0) {
+					latestSelected=res;
+				}
 			}
+				
+			
+			
+			
+//			int latestSelected=getIndexLatestInSelectedCollection();
+//			if(latestSelected<0) {
+//				//if nothing is selected, we will select starting from the first one
+//				latestSelected=0;
+//			}
 			
 			selection.clearSelection();
 			if(index < latestSelected) {
@@ -135,6 +134,7 @@ public class ClickSelection<T> implements Iterable<T> {
 			return;
 		} else {
 			selection.toggle(element);
+			lastModified=element;
 		}
 	}
 

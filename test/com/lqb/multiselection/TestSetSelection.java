@@ -41,10 +41,10 @@ public class TestSetSelection {
 	}
 	
 	@Test
-	public void testDeselect() {
+	public void testUnselect() {
 		newSelection.toggle(2);
 		assertTrue(newSelection.isSelected(2));
-		newSelection.deselect(2);
+		newSelection.unselect(2);
 		assertFalse(newSelection.isSelected(2));
 	}
 	

@@ -10,8 +10,8 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * It works pretty much like {@link ClickSelection} but adds a mechanism for notifying on DoubleClick on an image.
  * 
- * This differs a bit from how Windows work in the sense that Window would never open more than one item on double click,
- * but we do support this, by delaying a bit a normal click operation over an element that is selected
+ * This differs a bit from how Windows works in the sense that Windows would never open more than one item on double click,
+ * but we do support this, by delaying a bit a normal click operation over an element that is already selected
  * 
  * @author Rubén Pérez
  * @since 1.25

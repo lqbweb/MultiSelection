@@ -11,7 +11,7 @@ class SetSelection<T> implements Iterable<T> {
 	 * adds an item to the selection.
 	 * 
 	 * @param element
-	 * @param toggle on true, and the element is already selected, it will be deselected
+	 * @param toggle on true, and the element is already selected, it will be unselected
 	 * @return
 	 */
 	public SetSelection<T> select(T element) {
@@ -21,7 +21,7 @@ class SetSelection<T> implements Iterable<T> {
 	
 	public SetSelection<T> toggle(T element) {
 		if(elements.contains(element)) {
-			deselect(element);
+			unselect(element);
 		} else {
 			elements.add(element);
 		}
@@ -29,12 +29,12 @@ class SetSelection<T> implements Iterable<T> {
 	}
 	
 	/**
-	 * Deselects the item if it is selected. If not, nothing happens
+	 * Unselects the item if it is selected. If not, nothing happens
 	 * 
 	 * @param element
 	 * @return a reference to this class
 	 */
-	public SetSelection<T> deselect(T element) {
+	public SetSelection<T> unselect(T element) {
 		elements.remove(element);
 		return this;
 	}
