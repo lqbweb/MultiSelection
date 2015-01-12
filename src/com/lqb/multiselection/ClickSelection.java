@@ -4,6 +4,7 @@ import java.awt.event.InputEvent;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A Selection mechanism that selects some items out of a List and support three types of operations:
@@ -20,26 +21,35 @@ import java.util.ListIterator;
  * 
  * This API is assuming that when an item is removed from the collection, you unselect it from here.
  *
- * @author Rubén Pérez
- * @since 1.25
  * @param <T>
  */
 public class ClickSelection<T> implements Iterable<T> {
 
 	protected SetSelection<T> selection=new SetSelection<T>();
-	private final List<T> collection;
+	private final List<T> collection;		//this contains the collection in which elements in "selection" will be selected.
 	private T lastModified=null;
-	
+	protected ReentrantLock lock=new ReentrantLock();
+		
 	public ClickSelection(List<T> collection) {
 		this.collection=collection;
 	}
 	
 	public boolean isSelected(T element) {
-		return selection.isSelected(element);
+		lock.lock();
+		try {
+			return selection.isSelected(element);
+		} finally {
+			lock.unlock();
+		}
 	}
 	
 	public int size() {
-		return selection.size();
+		lock.lock();
+		try {
+			return selection.size();
+		} finally {
+			lock.unlock();
+		}
 	}
 		
 	
@@ -48,7 +58,12 @@ public class ClickSelection<T> implements Iterable<T> {
 	 * @param element
 	 */
 	public void unselectItem(T element) {
-		selection.unselect(element);
+		lock.lock();
+		try {
+			selection.unselect(element);
+		} finally {
+			lock.unlock();
+		}
 	}
 
 	/**
@@ -57,27 +72,39 @@ public class ClickSelection<T> implements Iterable<T> {
 	 * 		- If there is nothing selected or another item selected, the new item will be selected
 	 * 		- If there are multiple items selected, and element is not selected, "element" will be the only one selected
 	 * 		- If there are multiple items selected, and element is in between them, element will be the only one selected
+	 * @param element 
 	 */
 	public void normalClick(T element) {
-		if(collection.size()==0) {
-			return;
-		} else {
-			boolean isElementSelected=selection.isSelected(element);
-			int selectionSize=selection.size();
-			selection.clearSelection();
-			if(!isElementSelected) {
-				selection.select(element);
+		lock.lock();
+		try {
+			if(collection.size()==0) {
+				return;
 			} else {
-				if(selectionSize>1) {
+				boolean isElementSelected=selection.isSelected(element);
+				int selectionSize=selection.size();
+				selection.clearSelection();
+				if(!isElementSelected) {
 					selection.select(element);
+				} else {
+					if(selectionSize>1) {
+						selection.select(element);
+					} else {
+					}
 				}
+				lastModified=element;
 			}
-			lastModified=element;
+		} finally {
+			lock.unlock();
 		}
 	}
 	
 	public void clearSelection() {
-		selection.clearSelection();
+		lock.lock();
+		try {
+			selection.clearSelection();
+		} finally {
+			lock.unlock();
+		}
 	}
 	
 	public void shiftCtrlClick(T element) {
@@ -89,53 +116,63 @@ public class ClickSelection<T> implements Iterable<T> {
 	}
 	
 	private void shiftClick(T element, boolean clearSelection) {
-		if(collection.size()==0) {
-			return;
-		} else {
-			int index=collection.indexOf(element);
-			if(index<0)
+		lock.lock();
+		try {
+			if(collection.size()==0) {
 				return;
-						
-			int latestSelected=0;
-			if(lastModified!=null) {
-				int res=collection.indexOf(lastModified);
-				if(res>=0) {
-					latestSelected=res;
-				}
-			}
-			
-			if(clearSelection) {
-				selection.clearSelection();
-			}
-			
-			if(index < latestSelected) {
-				ListIterator<T> li = collection.listIterator(latestSelected + 1);
-				while(li.hasPrevious()) {
-					T currentElement=li.previous();
-					selection.select(currentElement);
-					if(currentElement.equals(element)) {
-						break;
-					}
-				}
 			} else {
-				ListIterator<T> li = collection.listIterator(latestSelected);
-				while(li.hasNext()) {
-					T currentElement=li.next();
-					selection.select(currentElement);
-					if(currentElement.equals(element)) {
-						break;
+				int index=collection.indexOf(element);
+				if(index<0)
+					return;
+							
+				int latestSelected=0;
+				if(lastModified!=null) {
+					int res=collection.indexOf(lastModified);
+					if(res>=0) {
+						latestSelected=res;
+					}
+				}
+				
+				if(clearSelection) {
+					selection.clearSelection();
+				}
+				
+				if(index < latestSelected) {
+					ListIterator<T> li = collection.listIterator(latestSelected + 1);
+					while(li.hasPrevious()) {
+						T currentElement=li.previous();
+						selection.select(currentElement);
+						if(currentElement.equals(element)) {
+							break;
+						}
+					}
+				} else {
+					ListIterator<T> li = collection.listIterator(latestSelected);
+					while(li.hasNext()) {
+						T currentElement=li.next();
+						selection.select(currentElement);
+						if(currentElement.equals(element)) {
+							break;
+						}
 					}
 				}
 			}
+		} finally {
+			lock.unlock();
 		}
 	}
 	
 	public void ctrlClick(T element) {
-		if(collection.size()==0) {
-			return;
-		} else {
-			selection.toggle(element);
-			lastModified=element;
+		lock.lock();
+		try {
+			if(collection.size()==0) {
+				return;
+			} else {
+				selection.toggle(element);
+				lastModified=element;
+			}
+		} finally {
+			lock.unlock();
 		}
 	}
 
@@ -153,6 +190,19 @@ public class ClickSelection<T> implements Iterable<T> {
 	
 	@Override
 	public Iterator<T> iterator() {
-		return selection.iterator();
+		lock.lock();
+		try {
+			return selection.iterator();
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	public void addListener(Object l) {
+		selection.addListener(l);
+	}
+
+	public void removeListener(Object l) {
+		selection.removeListener(l);
 	}
 }

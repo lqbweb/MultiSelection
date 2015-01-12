@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -23,7 +24,7 @@ public class TestDoubleClickSelection {
 		listInteger=new ArrayList<Integer>();
 		clickSelection=new DoubleClickSelection<Integer>(listInteger) {
 			@Override
-			protected void fireDoubleClick() {
+			protected void fireDoubleClick(Collection<Integer> selection) {
 				countDoubleClick.incrementAndGet();
 			}
 		};

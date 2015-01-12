@@ -1,11 +1,14 @@
 package com.lqb.multiselection;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
+
+import com.google.common.eventbus.EventBus;
+import com.lqb.multiselection.events.DoubleClickEvent;
 
 /**
  * It works pretty much like {@link ClickSelection} but adds a mechanism for notifying on DoubleClick on an image.
@@ -13,17 +16,17 @@ import java.util.concurrent.locks.ReentrantLock;
  * This differs a bit from how Windows works in the sense that Windows would never open more than one item on double click,
  * but we do support this, by delaying a bit a normal click operation over an element that is already selected
  * 
- * @author Rubén Pérez
  * @since 1.25
  * @param <T>
  */
 public class DoubleClickSelection<T> extends ClickSelection<T>{
 	protected static final int TIME_INTERVAL=350;
 	private ScheduledExecutorService executor;
-	private final ReentrantLock mainLock=new ReentrantLock();
 	private RequestNormalClick lastRequest;
 	private T lastNormalClick;
 	private long lastTimeNormalClick;
+	
+	private EventBus eventBus=new EventBus();
 	
 	public DoubleClickSelection(List<T> collection) {
 		this(collection, Executors.newScheduledThreadPool(1));
@@ -40,13 +43,13 @@ public class DoubleClickSelection<T> extends ClickSelection<T>{
 	
 	@Override
 	public void normalClick(final T element) {
-		mainLock.lock();
+		lock.lock();
 		try {
 			long currentTime=System.currentTimeMillis();
 			if(makesDoubleClick(element, currentTime)) {
 				//double click
 				cancelRequestWaiting(false);
-				fireDoubleClick();
+				fireDoubleClick(selection.elements());
 				return;
 			} else {
 				cancelRequestWaiting(true);
@@ -55,7 +58,6 @@ public class DoubleClickSelection<T> extends ClickSelection<T>{
 					Runnable task=new Runnable() {
 						@Override
 						public void run() {
-							mainLock.lock();
 							try {
 								if(Thread.interrupted()) {
 									return;
@@ -64,7 +66,6 @@ public class DoubleClickSelection<T> extends ClickSelection<T>{
 								}
 							} finally {
 								lastRequest=null;
-								mainLock.unlock();
 							}
 						}
 					};
@@ -77,43 +78,44 @@ public class DoubleClickSelection<T> extends ClickSelection<T>{
 				lastTimeNormalClick=currentTime;
 			}
 		} finally {
-			mainLock.unlock();
+			lock.unlock();
 		}
 	}
 	
 	@Override
 	public void shiftClick(T element) {
-		mainLock.lock();
+		lock.lock();
 		try {
 			cancelRequestWaiting(true);
 			super.shiftClick(element);
 		} finally {
-			mainLock.unlock();
+			lock.unlock();
 		}
 	}
 	
 	@Override
 	public void ctrlClick(T element) {
-		mainLock.lock();
+		lock.lock();
 		try {
 			cancelRequestWaiting(true);
 			super.ctrlClick(element);
 		} finally {
-			mainLock.unlock();
+			lock.unlock();
 		}
 	}
 	
 	public void cleanup() {
-		mainLock.lock();
+		lock.lock();
 		try {
 			executor.shutdownNow();
+			//selection.removeAllListeners();
 		} finally {
-			mainLock.unlock();
+			lock.unlock();
 		}
 	}
 	
 	private void cancelRequestWaiting(boolean runIfWaiting) {
-		assert(mainLock.isHeldByCurrentThread());
+		assert(lock.isHeldByCurrentThread());
 		
 		if(lastRequest!=null) {
 			ScheduledFuture<?> fut=lastRequest.fut;
@@ -126,8 +128,20 @@ public class DoubleClickSelection<T> extends ClickSelection<T>{
 		lastNormalClick=null;
 	}
 	
-	protected void fireDoubleClick() {
-		
+	@Override
+	public void addListener(Object listener) {
+		super.addListener(listener);
+		eventBus.register(listener);
+	}
+	
+	@Override
+	public void removeListener(Object listener) {
+		super.removeListener(listener);
+		eventBus.unregister(listener);
+	}
+	
+	protected void fireDoubleClick(Collection<T> selection) {
+		eventBus.post(new DoubleClickEvent<T>(this, selection));
 	}
 	
 	private class RequestNormalClick {
