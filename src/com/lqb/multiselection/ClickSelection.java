@@ -1,10 +1,13 @@
 package com.lqb.multiselection;
 
 import java.awt.event.InputEvent;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.concurrent.locks.ReentrantLock;
+
+import com.google.common.eventbus.EventBus;
+import com.lqb.multiselection.events.ClearSelectionEvent;
+import com.lqb.multiselection.events.SelectClickEvent;
+import com.lqb.multiselection.events.UnselectClickEvent;
 
 /**
  * A Selection mechanism that selects some items out of a List and support three types of operations:
@@ -21,50 +24,19 @@ import java.util.concurrent.locks.ReentrantLock;
  * 
  * This API is assuming that when an item is removed from the collection, you unselect it from here.
  *
+ * @since 1.25
  * @param <T>
  */
-public class ClickSelection<T> implements Iterable<T> {
-
-	protected SetSelection<T> selection=new SetSelection<T>();
+public class ClickSelection<T> extends SetSelection<T> {
 	private final List<T> collection;		//this contains the collection in which elements in "selection" will be selected.
 	private T lastModified=null;
-	protected ReentrantLock lock=new ReentrantLock();
-		
+	
+	protected EventBus eventBus=new EventBus();
+	
 	public ClickSelection(List<T> collection) {
 		this.collection=collection;
 	}
 	
-	public boolean isSelected(T element) {
-		lock.lock();
-		try {
-			return selection.isSelected(element);
-		} finally {
-			lock.unlock();
-		}
-	}
-	
-	public int size() {
-		lock.lock();
-		try {
-			return selection.size();
-		} finally {
-			lock.unlock();
-		}
-	}
-		
-	
-	/**
-	 * Call it when you have removed an element from "collection"
-	 * @param element
-	 */
-	public void unselectItem(T element) {
-		lock.lock();
-		try {
-			selection.unselect(element);
-		} finally {
-			lock.unlock();
-		}
-	}
 
 	/**
 	 * Requirements:
@@ -80,14 +52,14 @@ public class ClickSelection<T> implements Iterable<T> {
 			if(collection.size()==0) {
 				return;
 			} else {
-				boolean isElementSelected=selection.isSelected(element);
-				int selectionSize=selection.size();
-				selection.clearSelection();
+				boolean isElementSelected=isSelected(element);
+				int selectionSize=size();
+				clearSelection();
 				if(!isElementSelected) {
-					selection.select(element);
+					select(element);
 				} else {
 					if(selectionSize>1) {
-						selection.select(element);
+						select(element);
 					} else {
 					}
 				}
@@ -98,14 +70,30 @@ public class ClickSelection<T> implements Iterable<T> {
 		}
 	}
 	
+	@Override
 	public void clearSelection() {
-		lock.lock();
-		try {
-			selection.clearSelection();
-		} finally {
-			lock.unlock();
-		}
+		super.clearSelection();
+		fireClearSelection();
 	}
+	
+	@Override
+	public boolean select(T element) {
+		if(super.select(element)) {
+			fireSelectItem(element);
+			return true;
+		}
+		return false;
+	}
+	
+	@Override
+	public boolean unselect(T element) {
+		if(super.unselect(element)) {
+			fireUnselectItem(element);
+			return true;
+		}
+		return false;
+	}
+	
 	
 	public void shiftCtrlClick(T element) {
 		shiftClick(element, false);
@@ -134,14 +122,14 @@ public class ClickSelection<T> implements Iterable<T> {
 				}
 				
 				if(clearSelection) {
-					selection.clearSelection();
+					clearSelection();
 				}
 				
 				if(index < latestSelected) {
 					ListIterator<T> li = collection.listIterator(latestSelected + 1);
 					while(li.hasPrevious()) {
 						T currentElement=li.previous();
-						selection.select(currentElement);
+						select(currentElement);
 						if(currentElement.equals(element)) {
 							break;
 						}
@@ -150,7 +138,7 @@ public class ClickSelection<T> implements Iterable<T> {
 					ListIterator<T> li = collection.listIterator(latestSelected);
 					while(li.hasNext()) {
 						T currentElement=li.next();
-						selection.select(currentElement);
+						select(currentElement);
 						if(currentElement.equals(element)) {
 							break;
 						}
@@ -168,7 +156,7 @@ public class ClickSelection<T> implements Iterable<T> {
 			if(collection.size()==0) {
 				return;
 			} else {
-				selection.toggle(element);
+				toggle(element);
 				lastModified=element;
 			}
 		} finally {
@@ -187,22 +175,25 @@ public class ClickSelection<T> implements Iterable<T> {
 			normalClick(element);
 		}
 	}
-	
-	@Override
-	public Iterator<T> iterator() {
-		lock.lock();
-		try {
-			return selection.iterator();
-		} finally {
-			lock.unlock();
-		}
-	}
-	
+		
 	public void addListener(Object l) {
-		selection.addListener(l);
+		eventBus.register(l);
 	}
 
 	public void removeListener(Object l) {
-		selection.removeListener(l);
+		eventBus.unregister(l);
+	}
+	
+	
+	private void fireSelectItem(T item) {
+		eventBus.post(new SelectClickEvent<T>(this, item));
+	}
+	
+	private void fireUnselectItem(T item) {
+		eventBus.post(new UnselectClickEvent<T>(this, item));
+	}
+	
+	private void fireClearSelection() {
+		eventBus.post(new ClearSelectionEvent<T>(this));
 	}
 }

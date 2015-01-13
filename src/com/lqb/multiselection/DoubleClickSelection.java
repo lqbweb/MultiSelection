@@ -7,7 +7,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.eventbus.EventBus;
 import com.lqb.multiselection.events.DoubleClickEvent;
 
 /**
@@ -16,6 +15,7 @@ import com.lqb.multiselection.events.DoubleClickEvent;
  * This differs a bit from how Windows works in the sense that Windows would never open more than one item on double click,
  * but we do support this, by delaying a bit a normal click operation over an element that is already selected
  * 
+ * @author Rubén Pérez
  * @since 1.25
  * @param <T>
  */
@@ -25,8 +25,6 @@ public class DoubleClickSelection<T> extends ClickSelection<T>{
 	private RequestNormalClick lastRequest;
 	private T lastNormalClick;
 	private long lastTimeNormalClick;
-	
-	private EventBus eventBus=new EventBus();
 	
 	public DoubleClickSelection(List<T> collection) {
 		this(collection, Executors.newScheduledThreadPool(1));
@@ -49,11 +47,11 @@ public class DoubleClickSelection<T> extends ClickSelection<T>{
 			if(makesDoubleClick(element, currentTime)) {
 				//double click
 				cancelRequestWaiting(false);
-				fireDoubleClick(selection.elements());
+				fireDoubleClick(elements());
 				return;
 			} else {
 				cancelRequestWaiting(true);
-				if(selection.isSelected(element)) {
+				if(isSelected(element)) {
 					//we delay it! maybe a second click comes
 					Runnable task=new Runnable() {
 						@Override
@@ -108,7 +106,6 @@ public class DoubleClickSelection<T> extends ClickSelection<T>{
 		lock.lock();
 		try {
 			executor.shutdownNow();
-			//selection.removeAllListeners();
 		} finally {
 			lock.unlock();
 		}
@@ -131,13 +128,11 @@ public class DoubleClickSelection<T> extends ClickSelection<T>{
 	@Override
 	public void addListener(Object listener) {
 		super.addListener(listener);
-		eventBus.register(listener);
 	}
 	
 	@Override
 	public void removeListener(Object listener) {
 		super.removeListener(listener);
-		eventBus.unregister(listener);
 	}
 	
 	protected void fireDoubleClick(Collection<T> selection) {

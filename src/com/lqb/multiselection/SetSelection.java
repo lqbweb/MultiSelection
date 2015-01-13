@@ -3,71 +3,81 @@ package com.lqb.multiselection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-
-import com.google.common.eventbus.EventBus;
-import com.lqb.multiselection.events.ClearSelectionEvent;
-import com.lqb.multiselection.events.SelectClickEvent;
-import com.lqb.multiselection.events.UnselectClickEvent;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A very basic selection class, that providers select, unselect and toggle functions with events.
  * 
+ * @since 1.25
  * @param <T>
  */
 class SetSelection<T> implements Iterable<T> {
 	private Set<T> elements=new HashSet<T>();
+	protected ReentrantLock lock=new ReentrantLock();
 
-	private EventBus eventBus=new EventBus();
-	
 	/**
 	 * adds an item to the selection.
 	 * 
 	 * @param element
-	 * @return the current instance so you can join operations
+	 * @return true if it was not selected before
 	 */
-	public SetSelection<T> select(T element) {
-		if(elements.add(element)) {
-			fireSelectItem(element);
+	public boolean select(T element) {
+		lock.lock();
+		try {
+			return elements.add(element);
+		} finally {
+			lock.unlock();
 		}
-		return this;
 	}
 	
 	/**
 	 * Unselects the item if it is selected. If not, nothing happens
 	 * 
 	 * @param element
-	 * @return a reference to this class
+	 * @return true if it existed and was unselected
 	 */
-	public SetSelection<T> unselect(T element) {
-		if(elements.remove(element)) {
-			fireUnselectItem(element);
+	public boolean unselect(T element) {
+		lock.lock();
+		try {
+			return elements.remove(element);
+		} finally {
+			lock.unlock();
 		}
-		return this;
 	}
 	
-	public SetSelection<T> toggle(T element) {
+	public void toggle(T element) {
 		if(elements.contains(element)) {
 			unselect(element);
 		} else {
 			select(element);
 		}
-		return this;
 	}
 	
 	public boolean isSelected(T element) {
-		return elements.contains(element);
+		lock.lock();
+		try {
+			return elements.contains(element);
+		} finally {
+			lock.unlock();
+		}
 	}
 	
 	public void clearSelection() {
-		internalClearSelection();
-		fireClearSelection();
+		lock.lock();
+		try {
+			elements.clear();
+		} finally {
+			lock.unlock();
+		}
 	}
-
-	void internalClearSelection() {
-		elements.clear();
-	}
+	
 	public int size() {
-		return elements.size();
+		lock.lock();
+		try {
+			return elements.size();
+		} finally {
+			lock.unlock();
+		}
 	}
 	
 	@Override
@@ -77,25 +87,5 @@ class SetSelection<T> implements Iterable<T> {
 	
 	public Set<T> elements() {
 		return new HashSet<T>(elements);
-	}
-	
-	public void addListener(Object l) {
-		eventBus.register(l);
-	}
-
-	public void removeListener(Object l) {
-		eventBus.unregister(l);
-	}
-		
-	private void fireSelectItem(T item) {
-		eventBus.post(new SelectClickEvent<T>(this, item));
-	}
-	
-	private void fireUnselectItem(T item) {
-		eventBus.post(new UnselectClickEvent<T>(this, item));
-	}
-	
-	private void fireClearSelection() {
-		eventBus.post(new ClearSelectionEvent<T>(this));
 	}
 }
