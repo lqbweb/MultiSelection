@@ -125,16 +125,6 @@ public class DoubleClickSelection<T> extends ClickSelection<T>{
 		lastNormalClick=null;
 	}
 	
-	@Override
-	public void addListener(Object listener) {
-		super.addListener(listener);
-	}
-	
-	@Override
-	public void removeListener(Object listener) {
-		super.removeListener(listener);
-	}
-	
 	protected void fireDoubleClick(Collection<T> selection) {
 		eventBus.post(new DoubleClickEvent<T>(this, selection));
 	}
