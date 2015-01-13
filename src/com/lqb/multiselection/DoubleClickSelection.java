@@ -15,8 +15,6 @@ import com.lqb.multiselection.events.DoubleClickEvent;
  * This differs a bit from how Windows works in the sense that Windows would never open more than one item on double click,
  * but we do support this, by delaying a bit a normal click operation over an element that is already selected
  * 
- * @author Rubén Pérez
- * @since 1.25
  * @param <T>
  */
 public class DoubleClickSelection<T> extends ClickSelection<T>{

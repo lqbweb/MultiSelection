@@ -8,7 +8,6 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * A very basic selection class, that providers select, unselect and toggle functions with events.
  * 
- * @since 1.25
  * @param <T>
  */
 class SetSelection<T> implements Iterable<T> {

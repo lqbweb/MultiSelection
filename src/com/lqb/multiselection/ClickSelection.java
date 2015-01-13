@@ -24,7 +24,6 @@ import com.lqb.multiselection.events.UnselectClickEvent;
  * 
  * This API is assuming that when an item is removed from the collection, you unselect it from here.
  *
- * @since 1.25
  * @param <T>
  */
 public class ClickSelection<T> extends SetSelection<T> {
