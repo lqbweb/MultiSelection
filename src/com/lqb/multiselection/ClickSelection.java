@@ -53,12 +53,12 @@ public class ClickSelection<T> extends SetSelection<T> {
 			} else {
 				boolean isElementSelected=isSelected(element);
 				int selectionSize=size();
-				clearSelection();
+				clearSelectionInternal();
 				if(!isElementSelected) {
-					select(element);
+					selectInternal(element);
 				} else {
 					if(selectionSize>1) {
-						select(element);
+						selectInternal(element);
 					} else {
 					}
 				}
@@ -69,30 +69,27 @@ public class ClickSelection<T> extends SetSelection<T> {
 		}
 	}
 	
-	@Override
-	public void clearSelection() {
-		super.clearSelection();
+	private void clearSelectionInternal() {
+		clearSelection();
 		fireClearSelection();
 	}
 	
-	@Override
-	public boolean select(T element) {
-		if(super.select(element)) {
+	private boolean selectInternal(T element) {
+		if(select(element)) {
 			fireSelectItem(element);
 			return true;
 		}
 		return false;
 	}
 	
-	@Override
-	public boolean unselect(T element) {
-		if(super.unselect(element)) {
+	private void toggleInternal(T element) {
+		toggle(element);
+		if(isSelected(element)) {
+			fireSelectItem(element);
+		} else {
 			fireUnselectItem(element);
-			return true;
 		}
-		return false;
 	}
-	
 	
 	public void shiftCtrlClick(T element) {
 		shiftClick(element, false);
@@ -121,14 +118,14 @@ public class ClickSelection<T> extends SetSelection<T> {
 				}
 				
 				if(clearSelection) {
-					clearSelection();
+					clearSelectionInternal();
 				}
 				
 				if(index < latestSelected) {
 					ListIterator<T> li = collection.listIterator(latestSelected + 1);
 					while(li.hasPrevious()) {
 						T currentElement=li.previous();
-						select(currentElement);
+						selectInternal(currentElement);
 						if(currentElement.equals(element)) {
 							break;
 						}
@@ -137,7 +134,7 @@ public class ClickSelection<T> extends SetSelection<T> {
 					ListIterator<T> li = collection.listIterator(latestSelected);
 					while(li.hasNext()) {
 						T currentElement=li.next();
-						select(currentElement);
+						selectInternal(currentElement);
 						if(currentElement.equals(element)) {
 							break;
 						}
@@ -155,7 +152,7 @@ public class ClickSelection<T> extends SetSelection<T> {
 			if(collection.size()==0) {
 				return;
 			} else {
-				toggle(element);
+				toggleInternal(element);
 				lastModified=element;
 			}
 		} finally {
